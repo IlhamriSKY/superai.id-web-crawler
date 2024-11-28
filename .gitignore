@@ -1,0 +1,8 @@
+backup
+node_modules
+cookies.json
+error_log.php
+.png
+.jpg
+.jpeg
+package-lock.json
