@@ -1,8 +1,4 @@
-// const sendMessageAndGetResponse = require("./superai/run");
-// const SuperAI = require("./superai/scrap"); // Sesuaikan dengan path ke file scrap.js
-
-
-const { sendMessageAndGetResponse } = require("my-superai-package");
+const { SuperAI, sendMessageAndGetResponse } = require('@ilhamrisky/superai-id-web-crawler');
 
 (async () => {
     try {
@@ -14,21 +10,30 @@ const { sendMessageAndGetResponse } = require("my-superai-package");
         // Initialize SuperAI with configuration
         const bot = new SuperAI({ headless, cookiesFolder, cookiesFileName });
         const initResult = await bot.init();
-        if (!initResult.success) {
-            console.error("Initialization failed:", initResult.message);
-            return;
+
+        // Print initialization JSON result
+        console.log("Initialization Result:", initResult);
+
+        if (initResult.success) {
+            // Example usage only if initialization succeeds
+            const result1 = await sendMessageAndGetResponse('new', 'chatgpt', 'Hello, how are you?');
+            console.log("Chat Response:", result1);
+
+            await bot.close();
         }
-
-        // Example usage
-        const result1 = await sendMessageAndGetResponse('new', 'chatgpt', 'Hello, how are you?');
-        console.log("Result 1:", result1);
-
-        await bot.close();
     } catch (error) {
-        console.error("Unexpected error:", error.message);
+        // Return a structured JSON response for unexpected errors
+        const errorResponse = {
+            success: false,
+            message: `Unexpected error: ${error.message}`,
+        };
+        console.error("Error Response:", errorResponse);
     }
 })();
 
+
+// const sendMessageAndGetResponse = require("./superai/run");
+// const SuperAI = require("./superai/scrap"); // Sesuaikan dengan path ke file scrap.js
 
 // (async () => {
 //     try {

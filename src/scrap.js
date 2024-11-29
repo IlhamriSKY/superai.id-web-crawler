@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
 const CONFIG = require("./config");
+const path = require("path");
 const {
     createResponse,
     logErrorToFile,
@@ -36,29 +37,37 @@ class SuperAI {
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
             });
             this.page = await this.browser.newPage();
-
+    
             // Resolve cookies path
             const cookiesPath = path.resolve(this.cookiesFolder, this.cookiesFileName);
             if (fs.existsSync(cookiesPath)) {
                 const cookies = JSON.parse(fs.readFileSync(cookiesPath));
                 await this.page.setCookie(...cookies);
             } else {
-                throw new Error(`Cookies file not found at ${cookiesPath}. Please log in manually to save cookies.`);
+                // If cookies file is not found, close the browser and return JSON response
+                await this.browser.close();
+                return createResponse(false, `Cookies file not found at ${cookiesPath}. Please log in manually to save cookies.`);
             }
-
+    
             await this.page.goto(this.config.url, { waitUntil: "networkidle2" });
-
+    
             const isLoggedIn = await this.page.evaluate((loginButton) => {
                 return !document.querySelector(loginButton);
             }, this.config.selectors.loginButton);
-
+    
             if (!isLoggedIn) {
-                throw new Error("Login failed. Invalid cookies or session expired.");
+                // If login fails, close the browser and return JSON response
+                await this.browser.close();
+                return createResponse(false, "Login failed. Invalid cookies or session expired.");
             }
-
+    
             return createResponse(true, "Initialization successful");
         } catch (error) {
-            return createResponse(false, error.message);
+            // Close the browser if an unexpected error occurs
+            if (this.browser) {
+                await this.browser.close();
+            }
+            return createResponse(false, `Unexpected error during initialization: ${error.message}`);
         }
     }
 

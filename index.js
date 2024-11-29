@@ -1,8 +1,7 @@
-const sendMessageAndGetResponse = require("./src/run");
 const SuperAI = require("./src/scrap");
+const sendMessageAndGetResponse = require("./src/run");
 
-// Ekspor fungsi utama
 module.exports = {
+    SuperAI,
     sendMessageAndGetResponse,
-    SuperAI
 };
