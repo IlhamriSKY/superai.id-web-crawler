@@ -31,9 +31,9 @@ Requirements
 Installation
 ------------
 
-    ```bash
-    npm install superai-id-web-crawler
-    ```
+```bash
+npm install superai-id-web-crawler
+```
 
 Usage
 -----
