@@ -32,7 +32,7 @@ Installation
 ------------
 
 ```bash
-npm install superai-id-web-crawler
+npm install @ilhamrisky/superai-id-web-crawler
 ```
 
 Usage
