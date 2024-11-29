@@ -3,6 +3,8 @@ SuperAI Chat Automation
 
 SuperAI Chat Automation is a Node.js-based application designed to automate interactions with the SuperAI chat platform using Puppeteer. It allows users to programmatically open chats, select AI models, send messages, and retrieve responses with enhanced flexibility and custom configurations.
 
+I created this for research purposes. I discovered that it could also be done using an API. However, since I was lazy to perform network analysis to identify the API, I built this to make it easier.
+
 Features
 --------
 
