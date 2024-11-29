@@ -50,13 +50,13 @@ Run the application using the provided scripts:
 2.  Example output:
     
     ```json
-        Result 1: { success: true, data: "I'm the latest version of SuperAI!" }
+    Result 1: { success: true, data: "I'm the latest version of SuperAI!" }
     ```
     ```json
-        Result 2: { success: true, data: "Members of Avenged Sevenfold: M. Shadows, Synyster Gates, Zacky Vengeance, Johnny Christ, Brooks Wackerman" }
+    Result 2: { success: true, data: "Members of Avenged Sevenfold: M. Shadows, Synyster Gates, Zacky Vengeance, Johnny Christ, Brooks Wackerman" }
     ```
     ```json
-        Result 3: { success: true, data: "Lyrics of 'Dear God'..." }
+    Result 3: { success: true, data: "Lyrics of 'Dear God'..." }
     ```
 
 Code Documentation
