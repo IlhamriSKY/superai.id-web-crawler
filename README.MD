@@ -41,7 +41,7 @@ Usage
 Here’s an example of how to use the package:
 
 ```js
-    const { sendMessageAndGetResponse } = require('superai-id-web-crawler');
+    const { SuperAI, sendMessageAndGetResponse } = require('@ilhamrisky/superai-id-web-crawler');
     
     (async () => {
         try {
@@ -59,7 +59,7 @@ Configuration
 You can customize the browser mode (headless or not) and the cookies file/folder path in your script:
 
 ```js
-    const SuperAI = require('./src/scrap');
+    const { SuperAI, sendMessageAndGetResponse } = require('@ilhamrisky/superai-id-web-crawler');
     
     (async () => {
         const bot = new SuperAI({
