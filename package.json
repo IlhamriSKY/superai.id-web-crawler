@@ -1,6 +1,6 @@
 {
   "name": "@IlhamriSKY/superai-id-web-crawler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An npm package for automating interactions with SuperAI.id using Puppeteer.",
   "main": "index.js",
   "scripts": {

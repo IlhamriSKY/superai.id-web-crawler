@@ -16,7 +16,7 @@ const { SuperAI, sendMessageAndGetResponse } = require('@ilhamrisky/superai-id-w
 
         if (initResult.success) {
             // Example usage only if initialization succeeds
-            const result1 = await sendMessageAndGetResponse('new', 'chatgpt', 'Hello, how are you?');
+            const result1 = await sendMessageAndGetResponse(1, 'chatgpt', '123');
             console.log("Chat Response:", result1);
 
             await bot.close();

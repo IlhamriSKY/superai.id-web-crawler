@@ -34,9 +34,14 @@ class SuperAI {
         try {
             this.browser = await puppeteer.launch({
                 headless: this.headless,
-                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                ignoreHTTPSErrors: true,
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--start-maximized", // Starts browser maximized
+                ],
             });
-            this.page = await this.browser.newPage();
+            this.page = await this.browser.newPage();          
     
             // Resolve cookies path
             const cookiesPath = path.resolve(this.cookiesFolder, this.cookiesFileName);
