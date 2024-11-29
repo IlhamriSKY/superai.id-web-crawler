@@ -1,9 +1,11 @@
+  SuperAI Chat Automation
+
 SuperAI Chat Automation
 =======================
 
 **superai.id-web-crawler** is a Node.js package designed to automate interactions with the SuperAI chat platform using Puppeteer. It allows users to programmatically open chats, select AI models, send messages, and retrieve responses with enhanced flexibility and custom configurations.
 
-I created this for research purposes. I discovered that it could also be done using an API. However, since I was lazy to perform network analysis to identify the API, I built this to make it easier.
+_I created this for research purposes. I discovered that it could also be done using an API. However, since I was lazy to perform network analysis to identify the API, I built this to make it easier._
 
 Features
 --------
@@ -16,6 +18,7 @@ Features
 *   Search functionality with typing effect.
 *   Configurable delay and browser settings.
 *   Clear recent chat history programmatically.
+*   Customizable cookies file and folder path.
 
 Requirements
 ------------
@@ -28,10 +31,10 @@ Requirements
 Installation
 ------------
 
-```bash
-npm install superai-id-web-crawler
-```
-    
+    ```bash
+    npm install superai-id-web-crawler
+    ```
+
 Usage
 -----
 
@@ -50,6 +53,27 @@ Here’s an example of how to use the package:
     })();
 ```
 
+Configuration
+-------------
+
+You can customize the browser mode (headless or not) and the cookies file/folder path in your script:
+
+```js
+    const SuperAI = require('./src/scrap');
+    
+    (async () => {
+        const bot = new SuperAI({
+            headless: false, // Set to true or false
+            cookiesFolder: './', // Folder for cookies
+            cookiesFileName: 'cookies.json' // Custom filename for cookies
+        });
+    
+        await bot.init();
+        // Use bot as needed
+        await bot.close();
+    })();
+```
+
 Scripts
 -------
 
@@ -61,19 +85,19 @@ Development
 If you’d like to contribute, clone the repository:
 
 ```bash
-git clone https://github.com/IlhamriSKY/superai.id-web-crawler.git
+    git clone https://github.com/IlhamriSKY/superai.id-web-crawler.git
 ```
 
 Install dependencies:
 
 ```bash
-npm install
+    npm install
 ```
 
 Run the project:
 
 ```bash
-npm start
+    npm start
 ```
 
 Code Documentation
@@ -81,10 +105,7 @@ Code Documentation
 
 ### Core Classes and Functions
 
-*   #### Class: `SuperAI`
-    
-    The main class that handles browser automation and interactions with the chat platform.
-    
+*   **Class: `SuperAI`**
     *   `init()`: Initializes the browser and logs into the SuperAI platform.
     *   `handleRecentChats(choice)`: Opens a specific chat or creates a new one.
     *   `selectDropdownOption(optionKey)`: Selects a model from the dropdown menu.
@@ -92,9 +113,10 @@ Code Documentation
     *   `getNewResponses(lastMessageSent)`: Retrieves all new responses after the last separator.
     *   `close()`: Closes the browser instance.
     *   `closeWithDelay(delayTime)`: Closes the browser after a specified delay.
-*   #### Function: `sendMessageAndGetResponse(chatChoice, model, message)`
+*   **Function: `sendMessageAndGetResponse(chatChoice, model, message)`**
     
     A utility function in `run.js` that automates the workflow of opening a chat, selecting a model, sending a message, and retrieving a response.
+    
 
 Contributing
 ------------

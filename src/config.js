@@ -1,6 +1,5 @@
 const CONFIG = {
     url: "https://www.superai.id/login",
-    cookiesPath: "././cookies.json",
     selectors: {
         // Login
         loginButton: 'button[data-sentry-component="SignInWithGoogle"]',

@@ -6,11 +6,26 @@ const { sendMessageAndGetResponse } = require("my-superai-package");
 
 (async () => {
     try {
-        // Gunakan fungsi package
-        const result = await sendMessageAndGetResponse('new', "chatgpt", "Apa kabar?");
-        console.log("AI Response:", result);
+        // Configuration for SuperAI
+        const headless = false; // Set to true or false
+        const cookiesFolder = "./"; // Folder where cookies file is located
+        const cookiesFileName = "cookies.json"; // Custom filename for cookies
+
+        // Initialize SuperAI with configuration
+        const bot = new SuperAI({ headless, cookiesFolder, cookiesFileName });
+        const initResult = await bot.init();
+        if (!initResult.success) {
+            console.error("Initialization failed:", initResult.message);
+            return;
+        }
+
+        // Example usage
+        const result1 = await sendMessageAndGetResponse('new', 'chatgpt', 'Hello, how are you?');
+        console.log("Result 1:", result1);
+
+        await bot.close();
     } catch (error) {
-        console.error("Error:", error.message);
+        console.error("Unexpected error:", error.message);
     }
 })();
 

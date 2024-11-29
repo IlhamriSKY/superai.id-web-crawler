@@ -1,7 +1,7 @@
 {
-  "name": "superai-id-web-crawler",
-  "version": "1.0.0",
-  "description": "An npm package for automating interactions with SuperAI using Puppeteer.",
+  "name": "@IlhamriSKY/superai-id-web-crawler",
+  "version": "1.0.1",
+  "description": "An npm package for automating interactions with SuperAI.id using Puppeteer.",
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
@@ -17,14 +17,11 @@
   "author": "IlhamriSKY",
   "license": "MIT",
   "dependencies": {
+    "@IlhamriSKY/superai-id-web-crawler": "file:",
     "dotenv": "^16.4.5",
     "puppeteer": "^23.9.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "superai-id-web-crawler": "file:"
-  },
-  "engines": {
-    "node": ">=16.0.0"
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "repository": {
     "type": "git",
@@ -33,5 +30,8 @@
   "bugs": {
     "url": "https://github.com/IlhamriSKY/superai.id-web-crawler/issues"
   },
-  "homepage": "https://github.com/IlhamriSKY/superai.id-web-crawler#readme"
+  "homepage": "https://github.com/IlhamriSKY/superai.id-web-crawler#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
 }
