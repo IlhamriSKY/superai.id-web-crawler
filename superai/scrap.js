@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
 const CONFIG = require("./config");
+const { createResponse, logErrorToFile, delay, waitForSendButton, clickButton } = require("./helper");
 
 puppeteer.use(StealthPlugin());
 
@@ -12,17 +13,6 @@ class SuperAI {
     this.page = null;
     this.chatType = "NEW";
     this.initialResponseCount = 0;
-  }
-
-  /**
-   * Creates a response object.
-   * @param {boolean} success Indicates if the operation was successful.
-   * @param {string} message The message to return.
-   * @param {any} [data=null] Optional data to include in the response.
-   * @returns {Object} JSON containing the success status, message, and optional data.
-   */
-  createResponse(success, message, data = null, prompt = null) {
-    return { success, message, prompt, data };
   }
 
   /**
@@ -54,9 +44,9 @@ class SuperAI {
         throw new Error("Login failed. Invalid cookies or session expired.");
       }
 
-      return this.createResponse(true, "Initialization successful");
+      return createResponse(true, "Initialization successful");
     } catch (error) {
-      return this.createResponse(false, error.message);
+      return createResponse(false, error.message);
     }
   }
 
@@ -67,46 +57,79 @@ class SuperAI {
    */
   async handleRecentChats(choice = "new") {
     try {
-      const { recentChatContainer, chatItems, responseParent } = this.config.selectors;
-      const choiceStr = String(choice).toLowerCase();
-  
-      const recentChatsContainer = await this.page.$(recentChatContainer);
-      if (!recentChatsContainer) {
-        if (choiceStr === "new") {
-          this.chatType = "NEW";
-          return this.createResponse(true, "New chat created", null, choiceStr);
-        } else {
-          return this.createResponse(false, "No recent chats found", null, choiceStr);
+        // Validate input
+        if (typeof choice !== "string" && typeof choice !== "number") {
+            return createResponse(false, `Invalid choice type: expected string or number, got ${typeof choice}`);
         }
-      }
-  
-      const chats = await recentChatsContainer.$$(chatItems);
-      if (chats.length === 0) {
-        if (choiceStr === "new") {
-          this.chatType = "NEW";
-          return this.createResponse(true, "New chat created", null, choiceStr);
-        } else {
-          return this.createResponse(false, "No recent chats available", null, choiceStr);
+
+        const recentChatsContainer = this.config.selectors.recentChatsContainer;
+        const chatItems = this.config.selectors.chatItems;
+
+        const choiceStr = String(choice).toLowerCase();
+        const recentChatsElement = await this.page.$(recentChatsContainer);
+
+        // If the recent chats container is not found
+        if (!recentChatsElement) {
+            if (choiceStr === "new") {
+                const newButton = await this.page.evaluateHandle(() => {
+                    const buttons = Array.from(document.querySelectorAll('button[data-sentry-element="Button"], button[data-sentry-component="NewChat"]'));
+                    return buttons.find((button) => button.textContent.trim().includes("New"));
+                });
+
+                if (newButton) {
+                    await newButton.hover();
+                    await newButton.click();
+                    this.chatType = "NEW";
+                    return createResponse(true, "New chat created by clicking the 'New' button", null, choiceStr);
+                }
+
+                return createResponse(false, "New button not found", null, choiceStr);
+            }
+            return createResponse(false, "No recent chats found", null, choiceStr);
         }
-      }
-  
-      if (choiceStr === "new") {
-        this.chatType = "NEW";
-        return this.createResponse(true, "New chat created", null, choiceStr);
-      }
-  
-      const index = parseInt(choiceStr, 10) - 1;
-      if (index >= 0 && index < chats.length) {
+
+        // Fetch all chat items
+        const chats = await recentChatsElement.$$(chatItems);
+
+        // If no chats are found and user wants to start a new one
+        if (chats.length === 0 && choiceStr === "new") {
+            const newButton = await this.page.evaluateHandle(() => {
+                const buttons = Array.from(document.querySelectorAll('button[data-sentry-element="Button"], button[data-sentry-component="NewChat"]'));
+                return buttons.find((button) => button.textContent.trim().includes("New"));
+            });
+
+            if (newButton) {
+                await newButton.hover();
+                await newButton.click();
+                this.chatType = "NEW";
+                return createResponse(true, "New chat created by clicking the 'New' button", null, choiceStr);
+            }
+
+            return createResponse(false, "New button not found", null, choiceStr);
+        }
+
+        // If the user wants to create a new chat, regardless of existing chats
+        if (choiceStr === "new") {
+            this.chatType = "NEW";
+            return createResponse(true, "New chat created", null, choiceStr);
+        }
+
+        // Parse the choice and validate the index
+        const index = parseInt(choiceStr, 10) - 1;
+        if (isNaN(index) || index < 0 || index >= chats.length) {
+            return createResponse(false, "Invalid choice. No such chat exists.", null, choiceStr);
+        }
+
+        // Click on the selected chat
         await chats[index].click();
-        await this.page.waitForSelector(responseParent, { timeout: 30000 });
+        await this.page.waitForSelector(this.config.selectors.responseParent, { timeout: 30000 });
         this.chatType = "RECENT";
         this.initialResponseCount = (await this.page.$$(this.config.selectors.responseChild)).length;
-        return this.createResponse(true, `Chat number ${index + 1} opened`, null, choiceStr);
-      } else {
-        return this.createResponse(false, "Invalid choice. No such chat exists.", null, choiceStr);
-      }
+        return createResponse(true, `Chat number ${index + 1} opened`, null, choiceStr);
     } catch (error) {
-      return this.createResponse(false, `Error handling recent chats: ${error.message}`, null, choiceStr);
+        // Log the error to the console and file
+        logErrorToFile(error);
+        return createResponse(false, `Error handling recent chats: ${error.message}`, null, choice);
     }
   }
 
@@ -117,57 +140,224 @@ class SuperAI {
    */
   async selectDropdownOption(optionKey) {
     try {
-      const { dropdownButton, dropdownOptionsContainer } = this.config.selectors;
-      const optionText = this.config.dropdownOptions[optionKey.toLowerCase()];
-  
-      if (!optionText) {
-        throw new Error("Invalid option. Please choose a valid model.");
-      }
-  
-      await this.page.waitForSelector(dropdownButton, { timeout: 5000 });
-      await this.page.click(dropdownButton);
-  
-      await this.page.waitForSelector(dropdownOptionsContainer, { timeout: 5000 });
-  
-      const options = await this.page.$$(dropdownOptionsContainer + " button");
-      for (const option of options) {
-        const optionValue = await this.page.evaluate((el) => el.innerText.trim(), option);
-        if (optionValue.includes(optionText)) {
-          await option.click();
-          return this.createResponse(true, `Option '${optionValue}' selected`, null, optionKey);
+        const { dropdownButton, dropdownOptionsContainer } = this.config.selectors;
+        const optionText = this.config.dropdownOptions[optionKey.toLowerCase()];
+
+        // Validate the input key
+        if (!optionText) {
+            throw new Error(`Invalid option key '${optionKey}'. Available options: ${Object.keys(this.config.dropdownOptions).join(", ")}`);
         }
-      }
-  
-      throw new Error(`Option '${optionText}' not found.`);
+
+        // Wait for the dropdown button and click it
+        await this.page.waitForSelector(dropdownButton, { timeout: 5000 });
+        let dropdownButtonElement = await this.page.$(dropdownButton);
+        if (!dropdownButtonElement) {
+            throw new Error("Dropdown button not found");
+        }
+
+        // Retry if the dropdown button is detached
+        try {
+            await dropdownButtonElement.focus();
+            await dropdownButtonElement.click();
+        } catch (error) {
+            if (error.message.includes("Node is detached from document")) {
+                dropdownButtonElement = await this.page.$(dropdownButton); // Re-query the element
+                if (!dropdownButtonElement) {
+                    throw new Error("Dropdown button was removed and could not be re-queried.");
+                }
+                await dropdownButtonElement.click(); // Retry the click
+            } else {
+                throw error;
+            }
+        }
+
+        // Wait for the dropdown options to appear
+        await this.page.waitForSelector(dropdownOptionsContainer, { timeout: 5000 });
+        const options = await this.page.$$(dropdownOptionsContainer + " button");
+        if (!options || options.length === 0) {
+            throw new Error("Dropdown options not found");
+        }
+
+        // Search for the desired option and select it
+        for (const option of options) {
+            const optionValue = await this.page.evaluate((el) => el.innerText.trim(), option);
+            if (optionValue.includes(optionText)) {
+                try {
+                    await option.focus();
+                    await option.hover();
+                    await option.click();
+                } catch (error) {
+                    if (error.message.includes("Node is detached from document")) {
+                        const freshOption = await this.page.evaluateHandle((text, container) => {
+                            const buttons = Array.from(document.querySelectorAll(container + " button"));
+                            return buttons.find((btn) => btn.innerText.includes(text));
+                        }, optionText, dropdownOptionsContainer);
+
+                        if (!freshOption) {
+                            throw new Error(`Option '${optionText}' was removed and could not be re-queried.`);
+                        }
+
+                        await freshOption.click();
+                    } else {
+                        throw error;
+                    }
+                }
+                return createResponse(true, `Option '${optionValue}' selected`, null, optionKey);
+            }
+        }
+
+        throw new Error(`Option '${optionText}' not found in the dropdown.`);
     } catch (error) {
-      return this.createResponse(false, `Error selecting dropdown option: ${error.message}`, null, optionKey);
+        logErrorToFile(error, "selectDropdownOption");
+        return createResponse(false, `Error selecting dropdown option: ${error.message}`, null, optionKey);
     }
   }
 
   /**
-   * Sends a message to the chat.
-   * @param {string} message The message to send.
+   * Searches for a term in the search input on the page with a typing effect.
+   * @param {string} searchTerm The term to search for.
+   * @returns {Promise<Object>} JSON containing the success status, message, and optional data.
+   */
+  async searchOnPage(searchTerm) {
+    try {
+        // Validate the search term
+        if (typeof searchTerm !== "string" || !searchTerm.trim()) {
+            throw new Error("Invalid search term: must be a non-empty string.");
+        }
+
+        const searchInputSelector = 'input[placeholder="Search..."]';
+
+        // Wait until the search input is available
+        await this.page.waitForSelector(searchInputSelector, { timeout: 5000 });
+        const searchInput = await this.page.$(searchInputSelector);
+        if (!searchInput) {
+            throw new Error("Search input field not found.");
+        }
+
+        // Focus on the search input
+        await searchInput.focus();
+
+        // Type the search term with a delay for a typing effect
+        for (const char of searchTerm) {
+            await this.page.keyboard.type(char, { delay: 150 });
+        }
+
+        // Add a delay to ensure the search completes
+        await delay(1000);
+
+        return createResponse(true, `Search completed for '${searchTerm}'`);
+    } catch (error) {
+        // Log the error to a file and return the error response
+        logErrorToFile(error);
+        return createResponse(false, `Error during search: ${error.message}`, null, searchTerm);
+    }
+  }
+
+  /**
+   * Clears the search input on the page.
+   * @returns {Promise<Object>} JSON containing the success status and message.
+   */
+  async clearSearch() {
+    try {
+        const searchInputSelector = 'input[placeholder="Search..."]';
+
+        // Wait for the search input to appear
+        await this.page.waitForSelector(searchInputSelector, { timeout: 5000 });
+
+        // Clear the search input field
+        const cleared = await this.page.evaluate((selector) => {
+            const input = document.querySelector(selector);
+            if (input) {
+                input.value = ""; // Clear the input field value
+                const event = new Event("input", { bubbles: true }); // Trigger an input event
+                input.dispatchEvent(event);
+                return true;
+            }
+            return false;
+        }, searchInputSelector);
+
+        // Check if the input was successfully cleared
+        if (!cleared) {
+            throw new Error("Search input element not found or could not be cleared.");
+        }
+
+        return createResponse(true, "Search input cleared successfully");
+    } catch (error) {
+        // Log the error to a file and return the error response
+        logErrorToFile(error);
+        return createResponse(false, `Error clearing search: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sends a message to the chat, including model selection and separators.
+   * @param {string} message The main message to send.
+   * @param {string} selectedModel The model to select before sending the message.
    * @returns {Promise<Object>} JSON containing the success status and message or error.
    */
-  async sendMessage(message) {
+  async sendMessage(message, selectedModel) {
     try {
       const { textArea, sendButton } = this.config.selectors;
   
+      // Debugging: Log selectors
+      // console.log("Config Selectors:", this.config.selectors);
+      // console.log("Send Button Selector:", sendButton);
+  
+      // Validasi sendButton
+      if (!sendButton || typeof sendButton !== "string") {
+        throw new Error("Send button selector is not defined or invalid in the configuration.");
+      }
+  
+      // console.log(`Using send button selector: ${sendButton}`);
+  
+      // Step 1: Send the initial separator message if it's a new chat
+      if (this.chatType === "NEW") {
+        await this.page.waitForSelector(textArea, { timeout: 5000 });
+        await this.page.type(textArea, this.config.separatorMessage);
+  
+        await waitForSendButton(this.page, sendButton);
+        await clickButton(this.page, sendButton);
+        await delay(2000);
+      }
+  
+      // Step 2: Select the desired model
+      const modelSelectResult = await this.selectDropdownOption(selectedModel);
+      if (!modelSelectResult.success) {
+        logErrorToFile(new Error(`Model selection failed: ${modelSelectResult.message}`), "sendMessage");
+        return modelSelectResult;
+      }
+  
+      // Step 3: Add a delay before typing the main message
+      await delay(2000);
+  
+      // Step 4: Type the main message
+      await this.page.waitForSelector(textArea, { timeout: 5000 });
       await this.page.type(textArea, message);
-      await this.waitForElementAndClick(sendButton);
   
-      await this.delay(2000);
+      await waitForSendButton(this.page, sendButton);
+      await clickButton(this.page, sendButton);
+  
+      // Step 5: Add a delay before sending the final separator
+      await delay(2000);
+  
+      // Step 6: Send the final separator message
+      await this.page.waitForSelector(textArea, { timeout: 5000 });
       await this.page.type(textArea, this.config.separatorMessage);
-      await this.waitForElementAndClick(sendButton);
   
-      return this.createResponse(true, "Message sent successfully", null, message);
+      await waitForSendButton(this.page, sendButton);
+      await clickButton(this.page, sendButton);
+  
+      return createResponse(true, "Message and separators sent successfully with model selection", null, message);
     } catch (error) {
-      return this.createResponse(false, `Error sending message: ${error.message}`, null, message);
+      logErrorToFile(error, "sendMessage");
+      return createResponse(false, `Error sending message: ${error.message}`, null, message);
     }
   }
-
+  
+  
   /**
-   * Retrieves new responses after the last separator.
+   * Retrieves all new responses after the last separator and excludes the separator itself.
+   * @param {string} lastMessageSent The last message sent, used as a reference.
    * @returns {Promise<Object>} JSON containing the success status, data, or error.
    */
   async getNewResponses(lastMessageSent) {
@@ -228,8 +418,8 @@ class SuperAI {
             .filter((src) => src.startsWith("blob:")); // Filter for blob URLs
   
           // Debugging: Log filtered elements and images
-          console.log("Filtered Elements:", filteredElements);
-          console.log("Extracted Images:", images);
+          // console.log("Filtered Elements:", filteredElements);
+          // console.log("Extracted Images:", images);
   
           return { texts, images };
         },
@@ -239,37 +429,17 @@ class SuperAI {
       );
   
       if (responses.texts.length > 0 || responses.images.length > 0) {
-        return this.createResponse(true, "New responses retrieved", responses, lastMessageSent);
+        return createResponse(true, "New responses retrieved", responses, lastMessageSent);
       } else {
-        return this.createResponse(false, "No new responses found", null, lastMessageSent);
+        return createResponse(false, "No new responses found", null, lastMessageSent);
       }
     } catch (error) {
-      return this.createResponse(false, `Error retrieving responses: ${error.message}`, null, lastMessageSent);
+        // Log the error for debugging
+        logErrorToFile(error, "getNewResponses");
+    
+        // Return the error response
+        return createResponse(false, `Error retrieving responses: ${error.message}`, null, lastMessageSent);
     }
-  }
-
-  /**
-   * Clicks on a specified element after waiting for it to be visible.
-   * @param {string} selector The selector of the element to click.
-   * @param {number} [timeout=30000] The timeout in milliseconds.
-   * @throws Will throw an error if the element is not found.
-   */
-  async waitForElementAndClick(selector, timeout = 30000) {
-    try {
-      await this.page.waitForSelector(selector, { timeout });
-      await this.page.click(selector);
-    } catch (error) {
-      throw new Error(`Error clicking on element '${selector}': ${error.message}`);
-    }
-  }
-
-  /**
-   * Delays execution for a specified number of milliseconds.
-   * @param {number} ms The delay duration in milliseconds.
-   * @returns {Promise<void>} Resolves after the delay.
-   */
-  async delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -278,25 +448,49 @@ class SuperAI {
    */
   async close() {
     try {
-      await this.browser.close();
-      return this.createResponse(true, "Browser closed successfully");
+        if (!this.browser) {
+            throw new Error("Browser instance is not initialized or already closed.");
+        }
+
+        await this.browser.close();
+        return createResponse(true, "Browser closed successfully");
     } catch (error) {
-      return this.createResponse(false, `Error closing browser: ${error.message}`);
+        // Log the error to a file
+        logErrorToFile(new Error(`Error closing browser: ${error.message}`));
+
+        // Return a failure response
+        return createResponse(false, `Error closing browser: ${error.message}`);
     }
   }
 
   /**
    * Closes the browser instance after a specified delay.
-   * @param {number} delay The delay duration in milliseconds before closing the browser.
+   * @param {number} delayTime The delay duration in milliseconds before closing the browser.
    * @returns {Promise<Object>} JSON containing the success status and message or error.
    */
-  async closeWithDelay(delay) {
+  async closeWithDelay(delayTime) {
     try {
-      await this.delay(delay); // Wait for the specified delay
-      await this.browser.close();
-      return this.createResponse(true, "Browser closed successfully after delay");
+        // Validate the delay parameter
+        if (typeof delayTime !== "number" || delayTime < 0) {
+            throw new Error(`Invalid delay duration: ${delayTime}. Must be a non-negative number.`);
+        }
+
+        // Wait for the specified delay
+        await delay(delayTime);
+
+        // Close the browser
+        if (!this.browser) {
+            throw new Error("Browser instance is not initialized or already closed.");
+        }
+
+        await this.browser.close();
+        return createResponse(true, "Browser closed successfully after delay");
     } catch (error) {
-      return this.createResponse(false, `Error closing browser after delay: ${error.message}`);
+        // Log the error to a file
+        logErrorToFile(new Error(`Error closing browser after delay: ${error.message}`));
+
+        // Return a failure response
+        return createResponse(false, `Error closing browser after delay: ${error.message}`);
     }
   }
 }

@@ -3,8 +3,14 @@ const sendMessageAndGetResponse = require("./superai/run");
 (async () => {
     try {
         // Send "apa kabar" and get the response
-        const result1 = await sendMessageAndGetResponse(2, "gemini", "apa kabar?");
+        const result1 = await sendMessageAndGetResponse('new', "gemini", "kamu ai versi berapa?");
         console.log("Result 1:", result1);
+
+        const result2 = await sendMessageAndGetResponse(1, "gemini", "berikan aku list member a7x");
+        console.log("Result 2:", result2);
+
+        const result3 = await sendMessageAndGetResponse(1, "chatgpt", "berikan lirik lagu dear god a7x");
+        console.log("Result 3:", result3);
 
         // // Send "list member a7x" and get the response
         // const result2 = await sendMessageAndGetResponse(
