@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
 const CONFIG = require("./config");
-const { createResponse, logErrorToFile, delay, waitForSendButton, clickButton } = require("./helper");
+const { createResponse, logErrorToFile, delay, waitForSendButton, clickButton, ensureElementClickable } = require("./helper");
 
 puppeteer.use(StealthPlugin());
 
@@ -317,7 +317,7 @@ class SuperAI {
   
         await waitForSendButton(this.page, sendButton);
         await clickButton(this.page, sendButton);
-        await delay(2000);
+        await delay(1000);
       }
   
       // Step 2: Select the desired model
@@ -328,7 +328,7 @@ class SuperAI {
       }
   
       // Step 3: Add a delay before typing the main message
-      await delay(2000);
+      await delay(1000);
   
       // Step 4: Type the main message
       await this.page.waitForSelector(textArea, { timeout: 5000 });
@@ -338,7 +338,7 @@ class SuperAI {
       await clickButton(this.page, sendButton);
   
       // Step 5: Add a delay before sending the final separator
-      await delay(2000);
+      await delay(1000);
   
       // Step 6: Send the final separator message
       await this.page.waitForSelector(textArea, { timeout: 5000 });
@@ -362,85 +362,93 @@ class SuperAI {
    */
   async getNewResponses(lastMessageSent) {
     try {
-      const { responseParent, responseChild, separatorKey } = this.config.selectors;
-  
-      const responses = await this.page.evaluate(
-        (parentSel, childSel, separator) => {
-          const parentElement = document.querySelector(parentSel);
-          if (!parentElement) return { texts: [], images: [] };
-  
-          const childElements = Array.from(parentElement.querySelectorAll(childSel));
-          let lastSeparatorIndex = -1;
-  
-          // Find the last separator index
-          for (let i = childElements.length - 1; i >= 0; i--) {
-            const text = childElements[i].innerText.trim();
-            if (text.includes(separator)) {
-              lastSeparatorIndex = i;
-              break;
-            }
-          }
-  
-          // Get only responses after the last separator
-          const filteredElements = childElements.slice(lastSeparatorIndex + 1);
-  
-          const texts = filteredElements
-            .map((el) => {
-              const codeBlock = el.querySelector("pre code");
-              if (codeBlock) {
-                return `\`\`\`\n${codeBlock.textContent.trim()}\n\`\`\``; // Wrap code in triple backticks
-              }
-  
-              const orderedListItems = el.querySelectorAll("ol > li");
-              if (orderedListItems.length > 0) {
-                const startIndex = parseInt(el.querySelector("ol").getAttribute("start") || 1, 10);
-                return Array.from(orderedListItems)
-                  .map((li, index) => `${startIndex + index}. ${li.textContent.trim()}`)
-                  .join("\n");
-              }
-  
-              const unorderedListItems = el.querySelectorAll("ul > li");
-              if (unorderedListItems.length > 0) {
-                return Array.from(unorderedListItems)
-                  .map((li) => `- ${li.textContent.trim()}`)
-                  .join("\n");
-              }
-  
-              const text = el.innerText.trim();
-              return text.length > 0 ? text : null;
-            })
-            .filter((response) => response !== null);
-  
-          // Improved image extraction logic
-          const images = filteredElements
-            .flatMap((el) => Array.from(el.querySelectorAll("img"))) // Get all img elements
-            .map((img) => img.src) // Extract the src attribute
-            .filter((src) => src.startsWith("blob:")); // Filter for blob URLs
-  
-          // Debugging: Log filtered elements and images
-          // console.log("Filtered Elements:", filteredElements);
-          // console.log("Extracted Images:", images);
-  
-          return { texts, images };
-        },
-        responseParent,
-        responseChild,
-        this.config.separatorKey
-      );
-  
-      if (responses.texts.length > 0 || responses.images.length > 0) {
-        return createResponse(true, "New responses retrieved", responses, lastMessageSent);
-      } else {
-        return createResponse(false, "No new responses found", null, lastMessageSent);
-      }
+        const { responseParent, responseChild, separatorKey } = this.config.selectors;
+        const dropdownButton = this.config.selectors.dropdownButton || "button.text-zinc-800"; // Fallback jika tidak ada
+
+        // Extract the currently selected AI model using the selector from config
+        const selectedModel = await this.page.evaluate((dropdownSel) => {
+            const dropdownButton = document.querySelector(dropdownSel);
+            return dropdownButton ? dropdownButton.textContent.trim() : null; // Return the selected model's text
+        }, dropdownButton);
+
+        if (!selectedModel) {
+            return createResponse(false, "AI model could not be identified.");
+        }
+
+        const responses = await this.page.evaluate(
+            (parentSel, childSel, separator) => {
+                const parentElement = document.querySelector(parentSel);
+                if (!parentElement) return { texts: [], images: [] };
+
+                const childElements = Array.from(parentElement.querySelectorAll(childSel));
+                let lastSeparatorIndex = -1;
+
+                // Find the last separator index
+                for (let i = childElements.length - 1; i >= 0; i--) {
+                    const text = childElements[i].innerText.trim();
+                    if (text.includes(separator)) {
+                        lastSeparatorIndex = i;
+                        break;
+                    }
+                }
+
+                // Get only responses after the last separator
+                const filteredElements = childElements.slice(lastSeparatorIndex + 1);
+
+                const texts = filteredElements
+                    .map((el) => {
+                        const codeBlock = el.querySelector("pre code");
+                        if (codeBlock) {
+                            return `\`\`\`\n${codeBlock.textContent.trim()}\n\`\`\``; // Wrap code in triple backticks
+                        }
+
+                        const orderedListItems = el.querySelectorAll("ol > li");
+                        if (orderedListItems.length > 0) {
+                            const startIndex = parseInt(el.querySelector("ol").getAttribute("start") || 1, 10);
+                            return Array.from(orderedListItems)
+                                .map((li, index) => `${startIndex + index}. ${li.textContent.trim()}`)
+                                .join("\n");
+                        }
+
+                        const unorderedListItems = el.querySelectorAll("ul > li");
+                        if (unorderedListItems.length > 0) {
+                            return Array.from(unorderedListItems)
+                                .map((li) => `- ${li.textContent.trim()}`)
+                                .join("\n");
+                        }
+
+                        const text = el.innerText.trim();
+                        return text.length > 0 ? text : null;
+                    })
+                    .filter((response) => response !== null);
+
+                // Improved image extraction logic
+                const images = filteredElements
+                    .flatMap((el) => Array.from(el.querySelectorAll("img"))) // Get all img elements
+                    .map((img) => img.src) // Extract the src attribute
+                    .filter((src) => src.startsWith("blob:")); // Filter for blob URLs
+
+                return { texts, images };
+            },
+            responseParent,
+            responseChild,
+            this.config.separatorKey
+        );
+
+        if (responses.texts.length > 0 || responses.images.length > 0) {
+            return createResponse(true, "New responses retrieved", { model: selectedModel, ...responses }, lastMessageSent);
+        } else {
+            return createResponse(false, "No new responses found", { model: selectedModel }, lastMessageSent);
+        }
     } catch (error) {
         // Log the error for debugging
         logErrorToFile(error, "getNewResponses");
-    
+
         // Return the error response
         return createResponse(false, `Error retrieving responses: ${error.message}`, null, lastMessageSent);
     }
-  }
+}
+
 
   /**
    * Closes the browser instance.
@@ -491,6 +499,77 @@ class SuperAI {
 
         // Return a failure response
         return createResponse(false, `Error closing browser after delay: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clears all recent chats, handling both direct trash buttons and ellipsis menus.
+   * @returns {Promise<Object>} JSON containing the success status and message.
+   */
+  async clearRecentChats() {
+    try {
+        const ellipsisButtonSelector = 'button .lucide-ellipsis-vertical'; // Selector for ellipsis button
+        const deleteOptionSelector = 'div[role="menuitem"] .lucide-trash2'; // Selector for "Delete" option in the menu
+        const modalSelector = 'div[role="dialog"]'; // Selector for the modal
+        const deleteButtonInModalSelector = 'button.bg-destructive'; // Selector for "Delete Chat" in modal
+
+        let chatsDeleted = 0;
+
+        // Loop until no more chats to delete
+        while (true) {
+            // Wait for the page to stabilize
+            await delay(1000);
+
+            // Find ellipsis buttons
+            const ellipsisButtons = await this.page.$$(ellipsisButtonSelector);
+
+            if (ellipsisButtons.length === 0) {
+                break; // No more ellipsis buttons, exit loop
+            }
+
+            // Click the first ellipsis button
+            await ensureElementClickable(this.page, ellipsisButtonSelector); // Ensure clickable
+            await ellipsisButtons[0].click();
+
+            // Wait for the menu to open and find the "Delete" option
+            await this.page.waitForSelector(deleteOptionSelector, { timeout: 5000 });
+            const deleteOption = await this.page.$(deleteOptionSelector);
+            if (!deleteOption) {
+                return createResponse(false, "Delete option not found in menu.");
+            }
+
+            // Click the "Delete" option
+            await ensureElementClickable(this.page, deleteOptionSelector); // Ensure clickable
+            await deleteOption.click();
+
+            // Wait for 2 seconds before interacting with the modal
+            await delay(2000);
+
+            // Wait for the modal to appear
+            const modalVisible = await this.page.waitForSelector(modalSelector, { timeout: 5000 }).catch(() => null);
+            if (!modalVisible) {
+                return createResponse(false, "Confirmation modal not found.");
+            }
+
+            // Find and click the "Delete Chat" button in the modal
+            const deleteButtonInModal = await this.page.$(deleteButtonInModalSelector);
+            if (!deleteButtonInModal) {
+                return createResponse(false, "Delete button not found in confirmation modal.");
+            }
+
+            await ensureElementClickable(this.page, deleteButtonInModalSelector); // Ensure clickable
+            await deleteButtonInModal.click(); // Click the "Delete Chat" button
+            chatsDeleted++;
+
+            // Wait for the deletion to be reflected in the UI
+            await delay(1000);
+        }
+
+        return createResponse(true, `Successfully deleted ${chatsDeleted} chats.`);
+    } catch (error) {
+        // Log error and return failure response
+        logErrorToFile(error, "clearRecentChats");
+        return createResponse(false, `Error clearing recent chats: ${error.message}`);
     }
   }
 }

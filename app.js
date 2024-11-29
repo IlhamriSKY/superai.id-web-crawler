@@ -1,49 +1,56 @@
-const sendMessageAndGetResponse = require("./superai/run");
+// const sendMessageAndGetResponse = require("./superai/run");
+// const SuperAI = require("./superai/scrap"); // Sesuaikan dengan path ke file scrap.js
+
+
+const { sendMessageAndGetResponse } = require("my-superai-package");
 
 (async () => {
     try {
-        // Send "apa kabar" and get the response
-        const result1 = await sendMessageAndGetResponse('new', "gemini", "kamu ai versi berapa?");
-        console.log("Result 1:", result1);
-
-        const result2 = await sendMessageAndGetResponse(1, "gemini", "berikan aku list member a7x");
-        console.log("Result 2:", result2);
-
-        const result3 = await sendMessageAndGetResponse(1, "chatgpt", "berikan lirik lagu dear god a7x");
-        console.log("Result 3:", result3);
-
-        // // Send "list member a7x" and get the response
-        // const result2 = await sendMessageAndGetResponse(
-        //     2,
-        //     "gemini",
-        //     "list member a7x buat dalam point"
-        // );
-        // console.log("Result 2:", result2);
-
-        // // Send "buat dalam numeric" and get the response
-        // const result3 = await sendMessageAndGetResponse(
-        //     2,
-        //     "gemini",
-        //     "buat listnya jadi numeric contoh 1. nama satu, 2. nama dua"
-        // );
-        // console.log("Result 3:", result3);
-
-        // // Send "buat dalam pprint" and get the response
-        // const result4 = await sendMessageAndGetResponse(
-        //     2,
-        //     "gemini",
-        //     "buat listnya di python di pprint, lalu ketik 'oke' jika sudah"
-        // );
-        // console.log("Result 4:", result4);
-
-        // // Send "2 cerita lucu" and get the response
-        // const result5 = await sendMessageAndGetResponse(
-        //     2,
-        //     "gemini",
-        //     "buat 2 paragraf cerita lucu"
-        // );
-        // console.log("Result 5:", result5);
+        // Gunakan fungsi package
+        const result = await sendMessageAndGetResponse('new', "chatgpt", "Apa kabar?");
+        console.log("AI Response:", result);
     } catch (error) {
-        console.error("Unexpected error:", error.message);
+        console.error("Error:", error.message);
     }
 })();
+
+
+// (async () => {
+//     try {
+//         // Send "apa kabar" and get the response
+//         const result1 = await sendMessageAndGetResponse('new', "gemini", "kamu ai versi berapa?");
+//         console.log("Result 1:", result1);
+
+//         // const result2 = await sendMessageAndGetResponse(1, "gemini", "berikan aku list member a7x");
+//         // console.log("Result 2:", result2);
+
+//         // const result3 = await sendMessageAndGetResponse(1, "chatgpt", "berikan lirik lagu dear god a7x");
+//         // console.log("Result 3:", result3);
+
+//         // const result4 = await sendMessageAndGetResponse(1, "chatgpt", "python code for pprint example");
+//         // console.log("Result 4:", result4);
+//     } catch (error) {
+//         console.error("Unexpected error:", error.message);
+//     }
+// })();
+
+
+// (async () => {
+//     try {
+//         const bot = new SuperAI();
+//         const initResult = await bot.init();
+//         if (!initResult.success) {
+//             console.error("Initialization failed:", initResult.message);
+//             return;
+//         }
+
+//         // Clear all recent chats
+//         const clearChatsResult = await bot.clearRecentChats();
+//         console.log(clearChatsResult.message);
+
+//         // Close the browser
+//         await bot.closeWithDelay(2000);
+//     } catch (error) {
+//         console.error("Unexpected error:", error.message);
+//     }
+// })();

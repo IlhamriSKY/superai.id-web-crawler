@@ -116,6 +116,37 @@ async function clickButton(page, selector) {
     await button.click();
 }
 
+/**
+ * Ensures an element is clickable by scrolling it into view and waiting for visibility.
+ * @param {object} page Puppeteer Page instance.
+ * @param {string} selector CSS selector of the element to click.
+ * @returns {Promise<void>} Resolves when the element is clickable.
+ */
+async function ensureElementClickable(page, selector) {
+    try {
+        const elementHandle = await page.$(selector);
+        if (!elementHandle) {
+            throw new Error(`Element with selector "${selector}" not found.`);
+        }
+
+        // Scroll element into view
+        await elementHandle.evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "center" }));
+
+        // Wait until the element is visible and enabled
+        await page.waitForFunction(
+            (sel) => {
+                const el = document.querySelector(sel);
+                return el && el.offsetParent !== null; // Check visibility
+            },
+            {},
+            selector
+        );
+    } catch (error) {
+        throw new Error(`Failed to ensure element "${selector}" is clickable: ${error.message}`);
+    }
+}
+
+
 module.exports = {
     createResponse,
     logErrorToFile,
@@ -123,4 +154,5 @@ module.exports = {
     waitForElementAndClick,
     waitForSendButton,
     clickButton,
+    ensureElementClickable
 };
