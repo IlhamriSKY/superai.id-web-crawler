@@ -1,5 +1,3 @@
-SuperAI Chat Automation README
-
 SuperAI Chat Automation
 =======================
 
@@ -28,7 +26,7 @@ Installation
 
 1.  Clone this repository:
     
-        git clone https://github.com/your-repo/superai-chat-automation.git
+        git clone https://github.com/IlhamriSKY/superai.id-web-crawler.git
     
 2.  Navigate to the project directory:
     
