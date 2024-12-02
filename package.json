@@ -1,6 +1,6 @@
 {
-  "name": "@IlhamriSKY/superai-id-web-crawler",
-  "version": "1.0.1",
+  "name": "@ilhamrisky/superai-id-web-crawler",
+  "version": "1.0.0",
   "description": "An npm package for automating interactions with SuperAI.id using Puppeteer.",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,6 @@
   "license": "MIT",
   "dependencies": {
     "@ilhamrisky/superai-id-web-crawler": "file:",
-    "@IlhamriSKY/superai-id-web-crawler": "file:",
     "dotenv": "^16.4.5",
     "puppeteer": "^23.9.0",
     "puppeteer-extra": "^3.3.6",
