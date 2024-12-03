@@ -62,7 +62,7 @@ const sendMessageAndGetResponse = async (chatChoice, model, message) => {
     return { success: false, error: error.message };
   } finally {
     try {
-      await bot.closeWithDelay(2000); // Always close the browser
+      await bot.closeWithDelay(500); // Always close the browser
     } catch (closeError) {
     }
   }

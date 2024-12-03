@@ -282,7 +282,7 @@ class SuperAI {
             }
 
             // Add a delay to ensure the search completes
-            await delay(1000);
+            await delay(500);
 
             return createResponse(true, `Search completed for '${searchTerm}'`);
         } catch (error) {
@@ -365,7 +365,7 @@ class SuperAI {
 
                 await waitForSendButton(this.page, sendButton);
                 await clickButton(this.page, sendButton);
-                await delay(1000);
+                await delay(500);
             }
 
             // Step 2: Select the desired model
@@ -376,7 +376,7 @@ class SuperAI {
             }
 
             // Step 3: Add a delay before typing the main message
-            await delay(1000);
+            await delay(500);
 
             // Step 4: Type the main message
             await this.page.waitForSelector(textArea, {
@@ -388,7 +388,7 @@ class SuperAI {
             await clickButton(this.page, sendButton);
 
             // Step 5: Add a delay before sending the final separator
-            await delay(1000);
+            await delay(500);
 
             // Step 6: Send the final separator message
             await this.page.waitForSelector(textArea, {

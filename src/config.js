@@ -25,7 +25,7 @@ const CONFIG = {
         llama: "Llama 3.1",
         chatgpt: "ChatGPT 4o",
     },
-    separatorMessage: "ignore this message because it is a separator, reply with 'c2VwYXJhdG9y' only.",
+    separatorMessage: "ignore this message because it is a separator, reply with 'c2VwYXJhdG9y' only, please.",
     separatorKey: "c2VwYXJhdG9y",
 };
 
