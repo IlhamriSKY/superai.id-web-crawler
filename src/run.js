@@ -30,7 +30,7 @@ const sendMessageAndGetResponse = async (chatChoice, model, message) => {
         if (!dropdownResult.success) {
           return dropdownResult; // Return error JSON if model selection fails
         }
-        await delay(100); // Use delay from helper.js
+        await delay(500); // Use delay from helper.js
       }
 
       // Finally, select the desired model
@@ -62,7 +62,7 @@ const sendMessageAndGetResponse = async (chatChoice, model, message) => {
     return { success: false, error: error.message };
   } finally {
     try {
-      await bot.closeWithDelay(500); // Always close the browser
+      await bot.closeWithDelay(1000); // Always close the browser
     } catch (closeError) {
     }
   }
